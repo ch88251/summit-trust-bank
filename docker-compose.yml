@@ -1,0 +1,34 @@
+# The app (React + FastAPI in one image) alongside Postgres.
+#   docker compose up -d --build   →   http://localhost:8080
+name: banking-demo
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: bank
+      POSTGRES_PASSWORD: bank
+      POSTGRES_DB: bank
+    ports:
+      - "5433:5432"
+    # In-memory storage: every new database container starts empty and the app re-seeds the default data.
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bank -d bank"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    image: summit-bank:latest
+    environment:
+      DATABASE_URL: postgresql+psycopg://bank:bank@db:5432/bank
+      SECRET_KEY: change-me-for-anything-real
+      ENABLE_TEST_ENDPOINTS: "true"
+    ports:
+      - "8080:8000"
+    depends_on:
+      db:
+        condition: service_healthy
