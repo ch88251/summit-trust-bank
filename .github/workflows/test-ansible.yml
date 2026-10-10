@@ -27,11 +27,30 @@ jobs:
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
 
+          # Verify secrets are available without printing their contents
+          if [ -z "$SSH_KEY" ]; then
+            echo "::error::VPS_SSH_KEY is empty or unavailable"
+            exit 1
+          fi
+
+          if [ -z "$VPS_HOST_KEY" ]; then
+            echo "::error::VPS_HOST_KEY is empty or unavailable"
+            exit 1
+          fi
+
           printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
           printf '%s\n' "$VPS_HOST_KEY" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
+
+          # Verify that the host entry exists
+          ssh-keygen -F bank.cfhayes.com > /dev/null || {
+            echo "::error::No matching host entry in known_hosts"
+            exit 1
+          }
+
+          echo "SSH configuration initialized successfully"
 
       - name: Verify SSH host key
         run: |
@@ -40,7 +59,7 @@ jobs:
 
           echo "Checking host key fingerprint..."
           ssh-keygen -lf ~/.ssh/known_hosts
-          
+
       - name: Test Ansible connectivity
         run: |
           ansible-playbook \
