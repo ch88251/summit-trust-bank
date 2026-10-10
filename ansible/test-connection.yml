@@ -1,0 +1,28 @@
+---
+- name: Test InMotion VPS connectivity
+  hosts: production
+  gather_facts: false
+
+  tasks:
+    - name: Verify SSH connection
+      ansible.builtin.ping:
+
+    - name: Check Docker availability
+      ansible.builtin.command: docker --version
+      register: docker_version
+      changed_when: false
+
+    - name: Display Docker version
+      ansible.builtin.debug:
+        var: docker_version.stdout
+
+    - name: Verify deployment directory
+      ansible.builtin.stat:
+        path: /opt/summit-trust-bank/docker-compose.yml
+      register: compose_file
+
+    - name: Assert Compose file exists
+      ansible.builtin.assert:
+        that:
+          - compose_file.stat.exists
+          - compose_file.stat.isreg
