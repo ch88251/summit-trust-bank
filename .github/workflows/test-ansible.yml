@@ -33,6 +33,14 @@ jobs:
           printf '%s\n' "$VPS_HOST_KEY" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
+      - name: Verify SSH host key
+        run: |
+          echo "Checking known_hosts entry..."
+          ssh-keygen -F bank.cfhayes.com
+
+          echo "Checking host key fingerprint..."
+          ssh-keygen -lf ~/.ssh/known_hosts
+          
       - name: Test Ansible connectivity
         run: |
           ansible-playbook \
