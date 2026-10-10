@@ -1,44 +1,25 @@
 ---
-name: Deploy Summit Trust Bank
+- name: Deploy Summit Trust Bank
+  hosts: production
+  gather_facts: false
 
-on:
-  workflow_dispatch:
+  tasks:
+    - name: Pull latest application image
+      ansible.builtin.command:
+        cmd: docker compose pull app
+        chdir: /opt/summit-trust-bank
+      changed_when: true
 
-permissions:
-  contents: read
+    - name: Recreate application container
+      ansible.builtin.command:
+        cmd: docker compose up -d --no-deps --wait app
+        chdir: /opt/summit-trust-bank
+      changed_when: true
 
-concurrency:
-  group: summit-bank-production
-  cancel-in-progress: false
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    environment: production
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Ansible
-        run: |
-          python -m pip install ansible-core
-          ansible-galaxy collection install community.docker
-
-      - name: Configure SSH
-        env:
-          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-          VPS_HOST_KEY: ${{ secrets.VPS_HOST_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          printf '%s\n' "$VPS_HOST_KEY" > ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
-
-      - name: Deploy with Ansible
-        run: |
-          ansible-playbook \
-            -i ansible/inventory.ini \
-            ansible/deploy.yml
+    - name: Verify application over HTTPS
+      ansible.builtin.uri:
+        url: https://bank.cfhayes.com/docs
+        status_code: 200
+        timeout: 15
+      delegate_to: localhost
+      run_once: true
